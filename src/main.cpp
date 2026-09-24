@@ -11,7 +11,7 @@ int main() {
         1.0                // Mass
     };
 
-    // With no fields, the velocity must remain constant.
+    // No electric or magnetic field.
     const Vector3 E{0.0, 0.0, 0.0};
     const Vector3 B{0.0, 0.0, 0.0};
 

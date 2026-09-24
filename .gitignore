@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# CMake
+build/
+cmake-build-*/
+
+# Compiled executables
+boris
+test_boris
+simulation
+multi_particle_simulation
+
+# Generated numerical data
+results/*.csv
+
+# Python cache
+__pycache__/
+*.pyc
