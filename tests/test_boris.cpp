@@ -329,42 +329,83 @@ bool testGridMoments() {
             2.0                // Statistical weight
         },
         {
-            {1.50, 0.0, 0.0},
-            {0.00, 2.0, 0.0},
-            1.0,
-            1.0,
-            1.0
+            {1.50, 0.0, 0.0}, // Position
+            {0.00, 2.0, 0.0}, // Velocity
+            1.0,               // Charge
+            1.0,               // Mass
+            1.0                // Statistical weight
         }
     };
 
     const GridMoments moments =
         computeMoments(particles, grid);
 
-    // Deposited particle weights should be 1.5, 1.0 and 0.5.
+    // Expected density:
+    //
+    // Particle 0:
+    // node 0 receives 2.0 * 0.75 = 1.5
+    // node 1 receives 2.0 * 0.25 = 0.5
+    //
+    // Particle 1:
+    // node 1 receives 1.0 * 0.50 = 0.5
+    // node 2 receives 1.0 * 0.50 = 0.5
     const bool density_ok =
         near(moments.density[0], 1.5) &&
         near(moments.density[1], 1.0) &&
         near(moments.density[2], 0.5);
 
-    // Node 0 receives particles moving only in the x direction.
-    const bool first_velocity_ok =
+    // Flux is the deposited sum of weight times particle velocity.
+    //
+    // Node 0:
+    // 1.5 * (2, 0, 0) = (3, 0, 0)
+    //
+    // Node 1:
+    // 0.5 * (2, 0, 0) + 0.5 * (0, 2, 0)
+    // = (1, 1, 0)
+    //
+    // Node 2:
+    // 0.5 * (0, 2, 0) = (0, 1, 0)
+    const bool flux_ok =
+        near(moments.flux[0].x, 3.0) &&
+        near(moments.flux[0].y, 0.0) &&
+        near(moments.flux[0].z, 0.0) &&
+
+        near(moments.flux[1].x, 1.0) &&
+        near(moments.flux[1].y, 1.0) &&
+        near(moments.flux[1].z, 0.0) &&
+
+        near(moments.flux[2].x, 0.0) &&
+        near(moments.flux[2].y, 1.0) &&
+        near(moments.flux[2].z, 0.0);
+
+    // Bulk velocity is calculated from velocity = flux / density.
+    const bool velocity_ok =
         near(moments.velocity[0].x, 2.0) &&
-        near(moments.velocity[0].y, 0.0);
+        near(moments.velocity[0].y, 0.0) &&
+        near(moments.velocity[0].z, 0.0) &&
 
-    // Node 1 receives equal weights from both particles.
-    const bool middle_velocity_ok =
         near(moments.velocity[1].x, 1.0) &&
-        near(moments.velocity[1].y, 1.0);
+        near(moments.velocity[1].y, 1.0) &&
+        near(moments.velocity[1].z, 0.0) &&
 
-    // Node 2 receives particles moving only in the y direction.
-    const bool last_velocity_ok =
         near(moments.velocity[2].x, 0.0) &&
-        near(moments.velocity[2].y, 2.0);
+        near(moments.velocity[2].y, 2.0) &&
+        near(moments.velocity[2].z, 0.0);
+
+    // The total deposited density must equal the sum of particle weights.
+    double total_density = 0.0;
+
+    for (const double value : moments.density) {
+        total_density += value;
+    }
+
+    const bool conservation_ok =
+        near(total_density, 3.0);
 
     return density_ok &&
-           first_velocity_ok &&
-           middle_velocity_ok &&
-           last_velocity_ok;
+           flux_ok &&
+           velocity_ok &&
+           conservation_ok;
 }
 
 bool testLarmorRadius() {

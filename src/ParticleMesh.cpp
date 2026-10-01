@@ -4,7 +4,7 @@
 
 namespace {
 
-// Grid indices and interpolation weights surrounding one particle.
+// Indices and linear interpolation weights for one particle.
 struct NodeWeights {
     std::size_t left;
     std::size_t right;
@@ -13,7 +13,7 @@ struct NodeWeights {
     double w_right;
 };
 
-// Find the two nodes surrounding a particle.
+// Find the two grid points surrounding a particle.
 NodeWeights getNodeWeights(
     double x,
     const FieldGrid& grid
@@ -24,7 +24,7 @@ NodeWeights getNodeWeights(
     const std::size_t last = grid.size() - 1;
     const double x_max = x_min + dx * last;
 
-    // Assign particles outside the grid to the nearest endpoint.
+    // Particles outside the grid are assigned to the nearest endpoint.
     if (x <= x_min) {
         return {0, 0, 1.0, 0.0};
     }
@@ -33,7 +33,7 @@ NodeWeights getNodeWeights(
         return {last, last, 1.0, 0.0};
     }
 
-    // Position measured in units of grid spacing.
+    // Particle position measured in units of grid spacing.
     const double grid_pos = (x - x_min) / dx;
 
     const std::size_t left =
@@ -41,14 +41,14 @@ NodeWeights getNodeWeights(
 
     const std::size_t right = left + 1;
 
-    // Fractional distance from the left grid point.
-    const double weight = grid_pos - left;
+    // Fractional distance between the left node and the particle.
+    const double fraction = grid_pos - left;
 
     return {
         left,
         right,
-        1.0 - weight,
-        weight
+        1.0 - fraction,
+        fraction
     };
 }
 
@@ -68,7 +68,7 @@ std::vector<double> depositCharge(
         // Total charge represented by this macroparticle.
         const double macro_charge = p.q * p.w;
 
-        // Order-1 B-spline deposition.
+        // Deposit charge on the two neighbouring nodes.
         node_charge[nodes.left] +=
             macro_charge * nodes.w_left;
 
@@ -86,36 +86,38 @@ GridMoments computeMoments(
     GridMoments moments;
 
     moments.density.assign(grid.size(), 0.0);
+    moments.flux.assign(grid.size(), Vector3{});
     moments.velocity.assign(grid.size(), Vector3{});
 
     for (const Particle& p : particles) {
         const NodeWeights nodes =
             getNodeWeights(p.pos.x, grid);
 
-        // Statistical weight deposited on each neighbouring node.
+        // Combine the fixed particle weight with the position-dependent
+        // linear interpolation weight.
         const double weight_left =
             p.w * nodes.w_left;
 
         const double weight_right =
             p.w * nodes.w_right;
 
-        // Accumulate particle number on the grid.
+        // Deposit the macroparticle statistical weight as number density.
         moments.density[nodes.left] += weight_left;
         moments.density[nodes.right] += weight_right;
 
-        // Accumulate weighted velocity before normalization.
-        moments.velocity[nodes.left] +=
+        // Deposit weight times velocity as particle flux.
+        moments.flux[nodes.left] +=
             weight_left * p.vel;
 
-        moments.velocity[nodes.right] +=
+        moments.flux[nodes.right] +=
             weight_right * p.vel;
     }
 
-    // Convert weighted velocity sums into mean velocities.
+    // Calculate bulk velocity only at grid points containing particles.
     for (std::size_t i = 0; i < grid.size(); ++i) {
         if (moments.density[i] > 0.0) {
             moments.velocity[i] =
-                moments.velocity[i] / moments.density[i];
+                moments.flux[i] / moments.density[i];
         }
     }
 
