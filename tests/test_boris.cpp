@@ -516,6 +516,69 @@ bool testRotationDirection() {
     return positive_ok && negative_ok;
 }
 
+bool testExBCase(
+    const Vector3& E,
+    const Vector3& B,
+    const Vector3& expected_drift
+) {
+    // Starting at the theoretical drift velocity removes
+    // the cyclotron motion and leaves a straight trajectory.
+    Particle p{
+        {0.0, 0.0, 0.0},
+        expected_drift,
+        1.0,
+        1.0
+    };
+
+    const double dt = 0.01;
+    const int n_steps = 200;
+
+    for (int step = 0; step < n_steps; ++step) {
+        borisPush(p, E, B, dt);
+    }
+
+    const double time = n_steps * dt;
+    const Vector3 expected_pos =
+        time * expected_drift;
+
+    const bool position_ok =
+        near(p.pos.x, expected_pos.x, 1.0e-9) &&
+        near(p.pos.y, expected_pos.y, 1.0e-9) &&
+        near(p.pos.z, expected_pos.z, 1.0e-9);
+
+    const bool velocity_ok =
+        near(p.vel.x, expected_drift.x, 1.0e-9) &&
+        near(p.vel.y, expected_drift.y, 1.0e-9) &&
+        near(p.vel.z, expected_drift.z, 1.0e-9);
+
+    return position_ok && velocity_ok;
+}
+
+bool testExBDrift() {
+    // E along x and B along z gives drift along negative y.
+    const bool xy_case = testExBCase(
+        {1.0, 0.0, 0.0},
+        {0.0, 0.0, 1.0},
+        {0.0, -1.0, 0.0}
+    );
+
+    // E along y and B along x gives drift along negative z.
+    const bool yz_case = testExBCase(
+        {0.0, 1.0, 0.0},
+        {1.0, 0.0, 0.0},
+        {0.0, 0.0, -1.0}
+    );
+
+    // E along z and B along y gives drift along negative x.
+    const bool zx_case = testExBCase(
+        {0.0, 0.0, 1.0},
+        {0.0, 1.0, 0.0},
+        {-1.0, 0.0, 0.0}
+    );
+
+    return xy_case && yz_case && zx_case;
+}
+
 int main() {
     // Run all particle, field and grid tests.
     const bool free_motion_ok = testFreeMotion();
@@ -536,6 +599,8 @@ int main() {
     testCyclotronFrequency();
     const bool rotation_direction_ok =
     testRotationDirection();
+    const bool exb_drift_ok = testExBDrift();
+    
 
     std::cout << "Free motion: "
               << (free_motion_ok ? "PASS" : "FAIL") << '\n';
@@ -575,6 +640,9 @@ int main() {
     std::cout << "Rotation direction: "
           << (rotation_direction_ok ? "PASS" : "FAIL")
           << '\n';
+    std::cout << "E cross B drift: "
+          << (exb_drift_ok ? "PASS" : "FAIL")
+          << '\n';
     // The test executable succeeds only if every test passes.
 
     const bool all_tests_ok =
@@ -589,7 +657,8 @@ int main() {
         moments_ok &&
         larmor_radius_ok &&
         cyclotron_frequency_ok &&
-        rotation_direction_ok;
+        rotation_direction_ok &&
+        exb_drift_ok;
 
     return all_tests_ok ? 0 : 1;
 }
