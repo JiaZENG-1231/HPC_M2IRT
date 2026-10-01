@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <vector>
@@ -366,17 +367,65 @@ bool testGridMoments() {
            last_velocity_ok;
 }
 
+bool testLarmorRadius() {
+    // A charged particle moves perpendicular to a uniform magnetic field.
+    Particle p{
+        {0.0, 0.0, 0.0}, // Initial position
+        {1.0, 0.0, 0.0}, // Initial perpendicular velocity
+        1.0,              // Charge
+        1.0               // Mass
+    };
+
+    const Vector3 E{0.0, 0.0, 0.0};
+    const Vector3 B{0.0, 0.0, 1.0};
+
+    const double dt = 0.005;
+    const int n_steps = 1400;
+
+    const double initial_speed = p.vel.norm();
+
+    double x_min = p.pos.x;
+    double x_max = p.pos.x;
+
+    // Follow slightly more than one cyclotron period.
+    for (int step = 0; step < n_steps; ++step) {
+        borisPush(p, E, B, dt);
+
+        x_min = std::min(x_min, p.pos.x);
+        x_max = std::max(x_max, p.pos.x);
+    }
+
+    // The orbit diameter is the range of the x coordinate.
+    const double radius_numerical =
+        0.5 * (x_max - x_min);
+
+    const double radius_exact =
+        p.m * initial_speed /
+        (std::abs(p.q) * B.norm());
+
+    return near(
+        radius_numerical,
+        radius_exact,
+        5.0e-3
+    );
+}
+
 int main() {
     // Run all particle, field and grid tests.
     const bool free_motion_ok = testFreeMotion();
     const bool magnetic_energy_ok = testMagneticEnergy();
-    const bool electric_acceleration_ok = testElectricAcceleration();
-    const bool multiple_particles_ok = testMultipleParticles();
+    const bool electric_acceleration_ok =
+        testElectricAcceleration();
+
+    const bool multiple_particles_ok =
+        testMultipleParticles();
+
     const bool local_fields_ok = testLocalFields();
     const bool interpolation_ok = testFieldInterpolation();
     const bool grid_push_ok = testGridParticlePush();
     const bool deposition_ok = testChargeDeposition();
     const bool moments_ok = testGridMoments();
+    const bool larmor_radius_ok = testLarmorRadius();
 
     std::cout << "Free motion: "
               << (free_motion_ok ? "PASS" : "FAIL") << '\n';
@@ -385,10 +434,12 @@ int main() {
               << (magnetic_energy_ok ? "PASS" : "FAIL") << '\n';
 
     std::cout << "Electric acceleration: "
-              << (electric_acceleration_ok ? "PASS" : "FAIL") << '\n';
+              << (electric_acceleration_ok ? "PASS" : "FAIL")
+              << '\n';
 
     std::cout << "Multiple particles: "
-              << (multiple_particles_ok ? "PASS" : "FAIL") << '\n';
+              << (multiple_particles_ok ? "PASS" : "FAIL")
+              << '\n';
 
     std::cout << "Local particle fields: "
               << (local_fields_ok ? "PASS" : "FAIL") << '\n';
@@ -405,7 +456,10 @@ int main() {
     std::cout << "Grid moments: "
               << (moments_ok ? "PASS" : "FAIL") << '\n';
 
-    // The program succeeds only when every test passes.
+    std::cout << "Larmor radius: "
+              << (larmor_radius_ok ? "PASS" : "FAIL") << '\n';
+
+    // The test executable succeeds only if every test passes.
     const bool all_tests_ok =
         free_motion_ok &&
         magnetic_energy_ok &&
@@ -415,7 +469,8 @@ int main() {
         interpolation_ok &&
         grid_push_ok &&
         deposition_ok &&
-        moments_ok;
+        moments_ok &&
+        larmor_radius_ok;
 
     return all_tests_ok ? 0 : 1;
 }
