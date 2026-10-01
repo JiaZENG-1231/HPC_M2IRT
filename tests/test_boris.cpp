@@ -410,6 +410,77 @@ bool testLarmorRadius() {
     );
 }
 
+bool testCyclotronFrequency() {
+    Particle p{
+        {0.0, 0.0, 0.0},
+        {1.0, 0.0, 0.0},
+        1.0, // Charge
+        1.0  // Mass
+    };
+
+    const Vector3 E{0.0, 0.0, 0.0};
+    const Vector3 B{0.0, 0.0, 1.0};
+
+    const double dt = 0.002;
+    const int n_steps = 4000;
+    const double pi = 3.14159265358979323846;
+
+    double previous_vy = p.vel.y;
+    double period_numerical = 0.0;
+
+    bool positive_vy_reached = false;
+    bool period_found = false;
+
+    for (int step = 1; step <= n_steps; ++step) {
+        borisPush(p, E, B, dt);
+
+        const double current_vy = p.vel.y;
+
+        // After half an orbit, vy becomes positive.
+        if (current_vy > 0.0) {
+            positive_vy_reached = true;
+        }
+
+        // One complete orbit is reached when vy changes
+        // from positive back to negative.
+        if (
+            positive_vy_reached &&
+            previous_vy > 0.0 &&
+            current_vy <= 0.0
+        ) {
+            // Linear interpolation gives a more accurate
+            // estimate of the zero crossing.
+            const double fraction =
+                previous_vy /
+                (previous_vy - current_vy);
+
+            period_numerical =
+                (step - 1 + fraction) * dt;
+
+            period_found = true;
+            break;
+        }
+
+        previous_vy = current_vy;
+    }
+
+    if (!period_found) {
+        return false;
+    }
+
+    const double frequency_numerical =
+        2.0 * pi / period_numerical;
+
+    const double frequency_exact =
+        std::abs(p.q) * B.norm() / p.m;
+
+    return near(
+        frequency_numerical,
+        frequency_exact,
+        5.0e-3
+    );
+}
+
 int main() {
     // Run all particle, field and grid tests.
     const bool free_motion_ok = testFreeMotion();
@@ -426,6 +497,8 @@ int main() {
     const bool deposition_ok = testChargeDeposition();
     const bool moments_ok = testGridMoments();
     const bool larmor_radius_ok = testLarmorRadius();
+    const bool cyclotron_frequency_ok =
+    testCyclotronFrequency();
 
     std::cout << "Free motion: "
               << (free_motion_ok ? "PASS" : "FAIL") << '\n';
@@ -459,6 +532,10 @@ int main() {
     std::cout << "Larmor radius: "
               << (larmor_radius_ok ? "PASS" : "FAIL") << '\n';
 
+    std::cout << "Cyclotron frequency: "
+          << (cyclotron_frequency_ok ? "PASS" : "FAIL")
+          << '\n';
+
     // The test executable succeeds only if every test passes.
     const bool all_tests_ok =
         free_motion_ok &&
@@ -470,7 +547,8 @@ int main() {
         grid_push_ok &&
         deposition_ok &&
         moments_ok &&
-        larmor_radius_ok;
+        larmor_radius_ok &&
+        cyclotron_frequency_ok;
 
     return all_tests_ok ? 0 : 1;
 }
