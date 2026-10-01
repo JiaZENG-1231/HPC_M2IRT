@@ -29,7 +29,14 @@ void borisPush(
     double dt
 );
 
-// Interpolate fields from the grid and advance all particles.
+// Place a particle inside the periodic x domain of the grid.
+void applyPeriodicBoundary(
+    Particle& p,
+    const FieldGrid& grid
+);
+
+// Interpolate grid fields, advance the particles and apply
+// the periodic boundary condition in the x direction.
 void borisPush(
     std::vector<Particle>& particles,
     const FieldGrid& grid,

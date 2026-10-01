@@ -1,10 +1,14 @@
 #include "BorisPusher.hpp"
+
+#include <cmath>
 #include <stdexcept>
 
-void borisPush(Particle& p,
-               const Vector3& E,
-               const Vector3& B,
-               double dt) {
+void borisPush(
+    Particle& p,
+    const Vector3& E,
+    const Vector3& B,
+    double dt
+) {
     // Half of the acceleration produced by the electric field.
     const double half_kick = p.q * dt / (2.0 * p.m);
 
@@ -38,15 +42,15 @@ void borisPush(
     }
 }
 
-// Push each particle using the electric and magnetic fields
-// evaluated at its own position.
+// Push each particle using electric and magnetic fields
+// that have already been evaluated at its position.
 void borisPush(
     std::vector<Particle>& particles,
     const std::vector<Vector3>& E_part,
     const std::vector<Vector3>& B_part,
     double dt
 ) {
-    // Each particle must have one electric and one magnetic field.
+    // Every particle must have one electric and one magnetic field.
     if (particles.size() != E_part.size() ||
         particles.size() != B_part.size()) {
         throw std::invalid_argument(
@@ -59,18 +63,57 @@ void borisPush(
     }
 }
 
-// Interpolate the local fields and push every particle.
+void applyPeriodicBoundary(
+    Particle& p,
+    const FieldGrid& grid
+) {
+    if (grid.size() < 2) {
+        throw std::invalid_argument(
+            "A periodic grid requires at least two grid points."
+        );
+    }
+
+    const double x_min = grid.xMin();
+
+    // The first and last nodes define the periodic interval.
+    const double domain_length =
+        grid.spacing() * static_cast<double>(grid.size() - 1);
+
+    if (domain_length <= 0.0) {
+        throw std::invalid_argument(
+            "The periodic domain length must be positive."
+        );
+    }
+
+    // fmod also handles particles that cross several domain lengths
+    // during a single time step.
+    double wrapped_x =
+        std::fmod(p.pos.x - x_min, domain_length);
+
+    // C++ fmod returns a negative value for negative input.
+    if (wrapped_x < 0.0) {
+        wrapped_x += domain_length;
+    }
+
+    p.pos.x = x_min + wrapped_x;
+}
+
+// Interpolate the local fields, push every particle and return it
+// to the periodic x domain when it crosses a boundary.
 void borisPush(
     std::vector<Particle>& particles,
     const FieldGrid& grid,
     double dt
 ) {
     for (Particle& p : particles) {
-        // Fields are evaluated at the particle's current position.
+        // Fields are evaluated at the current particle position.
         const Vector3 E = grid.electricField(p.pos.x);
         const Vector3 B = grid.magneticField(p.pos.x);
 
-        // Advance the particle using its local fields.
+        // Advance velocity and position with the Boris algorithm.
         borisPush(p, E, B, dt);
+
+        // Wrap the new x position into the periodic domain.
+        applyPeriodicBoundary(p, grid);
     }
 }

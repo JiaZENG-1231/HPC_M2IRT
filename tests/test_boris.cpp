@@ -408,6 +408,86 @@ bool testGridMoments() {
            conservation_ok;
 }
 
+bool testPeriodicBoundary() {
+    // Grid nodes at x = 0, 1 and 2 define the periodic interval [0, 2).
+    const std::vector<Vector3> E_grid(3);
+    const std::vector<Vector3> B_grid(3);
+
+    const FieldGrid grid{
+        0.0,
+        1.0,
+        E_grid,
+        B_grid
+    };
+
+    // Cross the right boundary once: 2.25 becomes 0.25.
+    Particle right_crossing{
+        {2.25, 1.0, 2.0},
+        {1.0, 0.0, 0.0},
+        1.0,
+        1.0
+    };
+
+    applyPeriodicBoundary(right_crossing, grid);
+
+    const bool right_ok =
+        near(right_crossing.pos.x, 0.25);
+
+    // Cross the left boundary once: -0.25 becomes 1.75.
+    Particle left_crossing{
+        {-0.25, 1.0, 2.0},
+        {-1.0, 0.0, 0.0},
+        1.0,
+        1.0
+    };
+
+    applyPeriodicBoundary(left_crossing, grid);
+
+    const bool left_ok =
+        near(left_crossing.pos.x, 1.75);
+
+    // Cross several domain lengths: 6.25 becomes 0.25.
+    Particle multiple_crossing{
+        {6.25, 1.0, 2.0},
+        {1.0, 0.0, 0.0},
+        1.0,
+        1.0
+    };
+
+    applyPeriodicBoundary(multiple_crossing, grid);
+
+    const bool multiple_ok =
+        near(multiple_crossing.pos.x, 0.25);
+
+    // The upper boundary is identical to the lower boundary.
+    Particle upper_boundary{
+        {2.0, 1.0, 2.0},
+        {1.0, 0.0, 0.0},
+        1.0,
+        1.0
+    };
+
+    applyPeriodicBoundary(upper_boundary, grid);
+
+    const bool endpoint_ok =
+        near(upper_boundary.pos.x, 0.0);
+
+    // Wrapping x must not modify the other position components
+    // or any component of the particle velocity.
+    const bool unchanged_ok =
+        near(right_crossing.pos.y, 1.0) &&
+        near(right_crossing.pos.z, 2.0) &&
+        near(right_crossing.vel.x, 1.0) &&
+        near(right_crossing.vel.y, 0.0) &&
+        near(right_crossing.vel.z, 0.0);
+
+    return right_ok &&
+           left_ok &&
+           multiple_ok &&
+           endpoint_ok &&
+           unchanged_ok;
+}
+
 bool testLarmorRadius() {
     // A charged particle moves perpendicular to a uniform magnetic field.
     Particle p{
@@ -635,12 +715,15 @@ int main() {
     const bool grid_push_ok = testGridParticlePush();
     const bool deposition_ok = testChargeDeposition();
     const bool moments_ok = testGridMoments();
+    const bool periodic_boundary_ok =
+    testPeriodicBoundary();
     const bool larmor_radius_ok = testLarmorRadius();
     const bool cyclotron_frequency_ok =
     testCyclotronFrequency();
     const bool rotation_direction_ok =
     testRotationDirection();
     const bool exb_drift_ok = testExBDrift();
+
     
 
     std::cout << "Free motion: "
@@ -672,6 +755,10 @@ int main() {
     std::cout << "Grid moments: "
               << (moments_ok ? "PASS" : "FAIL") << '\n';
 
+    std::cout << "Periodic boundary: "
+          << (periodic_boundary_ok ? "PASS" : "FAIL")
+          << '\n';
+
     std::cout << "Larmor radius: "
               << (larmor_radius_ok ? "PASS" : "FAIL") << '\n';
 
@@ -696,6 +783,7 @@ int main() {
         grid_push_ok &&
         deposition_ok &&
         moments_ok &&
+        periodic_boundary_ok &&
         larmor_radius_ok &&
         cyclotron_frequency_ok &&
         rotation_direction_ok &&
