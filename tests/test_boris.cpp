@@ -481,6 +481,41 @@ bool testCyclotronFrequency() {
     );
 }
 
+bool testRotationDirection() {
+    Particle positive{
+        {0.0, 0.0, 0.0},
+        {1.0, 0.0, 0.0},
+        1.0, // Positive charge
+        1.0
+    };
+
+    Particle negative{
+        {0.0, 0.0, 0.0},
+        {1.0, 0.0, 0.0},
+        -1.0, // Negative charge
+        1.0
+    };
+
+    const Vector3 E{0.0, 0.0, 0.0};
+    const Vector3 B{0.0, 0.0, 1.0};
+    const double dt = 0.01;
+
+    borisPush(positive, E, B, dt);
+    borisPush(negative, E, B, dt);
+
+    // A positive charge bends toward negative y.
+    const bool positive_ok =
+        positive.vel.y < 0.0 &&
+        positive.pos.y < 0.0;
+
+    // A negative charge bends toward positive y.
+    const bool negative_ok =
+        negative.vel.y > 0.0 &&
+        negative.pos.y > 0.0;
+
+    return positive_ok && negative_ok;
+}
+
 int main() {
     // Run all particle, field and grid tests.
     const bool free_motion_ok = testFreeMotion();
@@ -499,6 +534,8 @@ int main() {
     const bool larmor_radius_ok = testLarmorRadius();
     const bool cyclotron_frequency_ok =
     testCyclotronFrequency();
+    const bool rotation_direction_ok =
+    testRotationDirection();
 
     std::cout << "Free motion: "
               << (free_motion_ok ? "PASS" : "FAIL") << '\n';
@@ -535,8 +572,11 @@ int main() {
     std::cout << "Cyclotron frequency: "
           << (cyclotron_frequency_ok ? "PASS" : "FAIL")
           << '\n';
-
+    std::cout << "Rotation direction: "
+          << (rotation_direction_ok ? "PASS" : "FAIL")
+          << '\n';
     // The test executable succeeds only if every test passes.
+
     const bool all_tests_ok =
         free_motion_ok &&
         magnetic_energy_ok &&
@@ -548,7 +588,8 @@ int main() {
         deposition_ok &&
         moments_ok &&
         larmor_radius_ok &&
-        cyclotron_frequency_ok;
+        cyclotron_frequency_ok &&
+        rotation_direction_ok;
 
     return all_tests_ok ? 0 : 1;
 }
