@@ -1,0 +1,37 @@
+name: C++ tests
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      # Download the repository onto the GitHub runner.
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      # Configure the CMake project in Release mode.
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      # Compile the project.
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      # Run all tests registered in CMake.
+      - name: Test
+        run: ctest --test-dir build --build-config Release --output-on-failure
