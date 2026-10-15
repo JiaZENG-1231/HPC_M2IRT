@@ -17,6 +17,7 @@ add_library(
     src/Grid.cpp
     src/ParticleBoundary.cpp
     src/Fields.cpp
+    src/Moments.cpp
 )
 
 target_include_directories(
@@ -109,6 +110,18 @@ target_link_libraries(
     pic_core
 )
 
+# Particle-to-grid moment tests.
+add_executable(
+    test_moments
+    tests/test_moments.cpp
+)
+
+target_link_libraries(
+    test_moments
+    PRIVATE
+    pic_core
+)
+
 # =====================
 enable_testing()
 
@@ -135,4 +148,9 @@ add_test(
 add_test(
     NAME field_tests
     COMMAND test_fields
+)
+
+add_test(
+    NAME moment_tests
+    COMMAND test_moments
 )
