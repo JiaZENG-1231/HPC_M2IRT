@@ -15,6 +15,7 @@ add_library(
     pic_core
     src/BorisPusher.cpp
     src/Grid.cpp
+    src/ParticleBoundary.cpp
 )
 
 target_include_directories(
@@ -83,6 +84,19 @@ target_link_libraries(
     pic_core
 )
 
+# Particle boundary tests.
+add_executable(
+    test_boundary
+    tests/test_boundary.cpp
+)
+
+target_link_libraries(
+    test_boundary
+    PRIVATE
+    pic_core
+)
+
+# =====================
 enable_testing()
 
 add_test(
@@ -98,4 +112,9 @@ add_test(
 add_test(
     NAME grid_tests
     COMMAND test_grid
+)
+
+add_test(
+    NAME boundary_tests
+    COMMAND test_boundary
 )
