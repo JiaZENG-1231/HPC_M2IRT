@@ -10,15 +10,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Shared header files.
+# Physics library shared by the programs and tests.
 add_library(
     pic_core
-    INTERFACE
+    src/BorisPusher.cpp
 )
 
 target_include_directories(
     pic_core
-    INTERFACE
+    PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
@@ -46,9 +46,26 @@ target_link_libraries(
     pic_core
 )
 
+# Boris pusher tests.
+add_executable(
+    test_boris
+    tests/test_boris.cpp
+)
+
+target_link_libraries(
+    test_boris
+    PRIVATE
+    pic_core
+)
+
 enable_testing()
 
 add_test(
     NAME vector3_tests
     COMMAND test_vector3
+)
+
+add_test(
+    NAME boris_tests
+    COMMAND test_boris
 )
