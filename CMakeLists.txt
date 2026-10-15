@@ -58,6 +58,18 @@ target_link_libraries(
     pic_core
 )
 
+# Single-particle trajectory in a uniform magnetic field.
+add_executable(
+    particle_trajectory
+    src/particle_trajectory.cpp
+)
+
+target_link_libraries(
+    particle_trajectory
+    PRIVATE
+    pic_core
+)
+
 enable_testing()
 
 add_test(
