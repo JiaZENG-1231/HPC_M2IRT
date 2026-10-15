@@ -1,5 +1,6 @@
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 #include "BorisPusher.hpp"
 
@@ -72,9 +73,53 @@ bool testMagneticEnergy() {
 
     const double speed_final = p.vel.norm();
 
-    // A magnetic field changes direction but does no work.
-    return near(speed_final, speed_init, 
-1.0e-10);
+    // The magnetic field changes direction but does no work.
+    return near(speed_final, speed_init, 1.0e-10);
+}
+
+bool testMultipleParticles() {
+    std::vector<Particle> particles{
+        {
+            {0.0, 0.0, 0.0},
+            {1.0, 0.0, 0.0},
+            1.0,
+            1.0
+        },
+        {
+            {1.0, 0.0, 0.0},
+            {0.0, 2.0, 0.0},
+            1.0,
+            1.0
+        },
+        {
+            {0.0, 1.0, 0.0},
+            {-1.0, 0.0, 0.0},
+            1.0,
+            1.0
+        }
+    };
+
+    const Vector3 E{};
+    const Vector3 B{};
+
+    borisPush(particles, E, B, 0.2);
+
+    // Without fields, every particle follows its own straight line.
+    const bool first_ok =
+        near(particles[0].pos.x, 0.2) &&
+        near(particles[0].pos.y, 0.0);
+
+    const bool second_ok =
+        near(particles[1].pos.x, 1.0) &&
+        near(particles[1].pos.y, 0.4);
+
+    const bool third_ok =
+        near(particles[2].pos.x, -0.2) &&
+        near(particles[2].pos.y, 1.0);
+
+    return first_ok &&
+           second_ok &&
+           third_ok;
 }
 
 int main() {
@@ -86,6 +131,9 @@ int main() {
 
     const bool magnetic_ok =
         testMagneticEnergy();
+
+    const bool multiple_ok =
+        testMultipleParticles();
 
     std::cout << "Free motion: "
               << (free_ok ? "PASS" : "FAIL")
@@ -99,10 +147,15 @@ int main() {
               << (magnetic_ok ? "PASS" : "FAIL")
               << '\n';
 
+    std::cout << "Multiple particles: "
+              << (multiple_ok ? "PASS" : "FAIL")
+              << '\n';
+
     const bool tests_ok =
         free_ok &&
         electric_ok &&
-        magnetic_ok;
+        magnetic_ok &&
+        multiple_ok;
 
     return tests_ok ? 0 : 1;
 }

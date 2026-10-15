@@ -38,6 +38,17 @@ void borisPush(
     p.vel =
         v_plus + half_kick * E;
 
-    // Advance the particle position.
     p.pos += dt * p.vel;
+}
+
+void borisPush(
+    std::vector<Particle>& particles,
+    const Vector3& E,
+    const Vector3& B,
+    double dt
+) {
+    // Apply the single-particle algorithm to the full population.
+    for (Particle& p : particles) {
+        borisPush(p, E, B, dt);
+    }
 }
