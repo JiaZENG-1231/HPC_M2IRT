@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include "ParticleBoundary.hpp"
+
 void borisPush(
     Particle& p,
     const Vector3& E,
@@ -50,5 +52,35 @@ void borisPush(
     // Apply the single-particle algorithm to the full population.
     for (Particle& p : particles) {
         borisPush(p, E, B, dt);
+    }
+}
+
+
+void borisPush(
+    std::vector<Particle>& particles,
+    const VectorField& E,
+    const VectorField& B,
+    const Grid& grid,
+    double dt
+) {
+    for (Particle& p : particles) {
+        // Evaluate the fields at the current position.
+        const Vector3 E_part =
+            gatherField(E, grid, p.pos.x);
+
+        const Vector3 B_part =
+            gatherField(B, grid, p.pos.x);
+
+        borisPush(
+            p,
+            E_part,
+            B_part,
+            dt
+        );
+
+        applyPeriodicBoundary(
+            p,
+            grid
+        );
     }
 }

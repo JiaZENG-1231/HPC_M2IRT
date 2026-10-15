@@ -122,6 +122,84 @@ bool testMultipleParticles() {
            third_ok;
 }
 
+bool testGridFields() {
+    const Grid grid{4, 1.0};
+
+    VectorField E =
+        makeElectricField(grid);
+
+    VectorField B =
+        makeMagneticField(grid);
+
+    // Ey changes linearly between grid nodes.
+    E.y = {0.0, 1.0, 2.0, 3.0};
+
+    std::vector<Particle> particles{
+        {
+            {0.25, 0.0, 0.0},
+            {},
+            1.0,
+            1.0
+        },
+        {
+            {1.50, 0.0, 0.0},
+            {},
+            1.0,
+            1.0
+        }
+    };
+
+    borisPush(
+        particles,
+        E,
+        B,
+        grid,
+        0.1
+    );
+
+    // Interpolated Ey values are 0.25 and 1.50.
+    const bool first_ok =
+        near(particles[0].vel.y, 0.025);
+
+    const bool second_ok =
+        near(particles[1].vel.y, 0.150);
+
+    return first_ok && second_ok;
+}
+
+bool testPushAcrossBoundary() {
+    const Grid grid{4, 1.0};
+
+    const VectorField E =
+        makeElectricField(grid);
+
+    const VectorField B =
+        makeMagneticField(grid);
+
+    std::vector<Particle> particles{
+        {
+            {3.95, 0.0, 0.0},
+            {1.00, 0.0, 0.0},
+            1.0,
+            1.0
+        }
+    };
+
+    borisPush(
+        particles,
+        E,
+        B,
+        grid,
+        0.1
+    );
+
+    // 3.95 + 0.10 becomes 0.05 periodically.
+    return near(
+        particles[0].pos.x,
+        0.05
+    );
+}
+
 int main() {
     const bool free_ok =
         testFreeMotion();
@@ -134,6 +212,12 @@ int main() {
 
     const bool multiple_ok =
         testMultipleParticles();
+
+    const bool grid_fields_ok =
+        testGridFields();
+
+    const bool grid_boundary_ok =
+        testPushAcrossBoundary();
 
     std::cout << "Free motion: "
               << (free_ok ? "PASS" : "FAIL")
@@ -151,11 +235,21 @@ int main() {
               << (multiple_ok ? "PASS" : "FAIL")
               << '\n';
 
+    std::cout << "Grid fields: "
+              << (grid_fields_ok ? "PASS" : "FAIL")
+              << '\n';
+
+    std::cout << "Grid push boundary: "
+              << (grid_boundary_ok ? "PASS" : "FAIL")
+              << '\n';
+
     const bool tests_ok =
         free_ok &&
         electric_ok &&
         magnetic_ok &&
-        multiple_ok;
+        multiple_ok &&
+        grid_fields_ok &&
+        grid_boundary_ok;
 
     return tests_ok ? 0 : 1;
 }
