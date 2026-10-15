@@ -14,6 +14,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(
     pic_core
     src/BorisPusher.cpp
+    src/Grid.cpp
 )
 
 target_include_directories(
@@ -70,6 +71,18 @@ target_link_libraries(
     pic_core
 )
 
+# Periodic grid and shape-weight tests.
+add_executable(
+    test_grid
+    tests/test_grid.cpp
+)
+
+target_link_libraries(
+    test_grid
+    PRIVATE
+    pic_core
+)
+
 enable_testing()
 
 add_test(
@@ -80,4 +93,9 @@ add_test(
 add_test(
     NAME boris_tests
     COMMAND test_boris
+)
+
+add_test(
+    NAME grid_tests
+    COMMAND test_grid
 )
