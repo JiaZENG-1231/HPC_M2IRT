@@ -122,6 +122,18 @@ target_link_libraries(
     pic_core
 )
 
+# Particle energy and temperature tests.
+add_executable(
+    test_temperature
+    tests/test_temperature.cpp
+)
+
+target_link_libraries(
+    test_temperature
+    PRIVATE
+    pic_core
+)
+
 # =====================
 enable_testing()
 
@@ -153,4 +165,9 @@ add_test(
 add_test(
     NAME moment_tests
     COMMAND test_moments
+)
+
+add_test(
+    NAME temperature_tests
+    COMMAND test_temperature
 )
